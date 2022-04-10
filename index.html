@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Token Refresh Test</title>
+</head>
+<body>
+  <h1>Token Refresh Test</h1>
+
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+  <script>
+    /**
+    * Add your agora app id
+    */
+    const config = {
+      appId: '',
+      channelName: 'test-channel',
+      uid: 'unique-user-id',
+    }
+
+    let localAudioTrack;
+    const client = AgoraRTC.createClient({ codec: 'h264', mode: 'rtc' });
+
+    const fetchToken = () => fetch('http://localhost:3333/token').then(response => response.json())
+
+    const handleRefreshToken = (token) => client.renewToken(token)
+
+    const refreshToken = () => fetchToken().then(({ token }) => {
+      console.log('== Refreshing Token ==');
+      handleRefreshToken(token);
+    });
+
+    const handleJoin = async (token) => {
+      client.on('token-privilege-will-expire', refreshToken);
+      await client.join(config.appId, config.channelName, token, config.uid);
+      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      await client.publish(localAudioTrack);
+    }
+
+    const join = () => fetchToken().then(({ token }) => handleJoin(token));
+
+    window.addEventListener('DOMContentLoaded', join);
+  </script>
+</body>
+</html>
